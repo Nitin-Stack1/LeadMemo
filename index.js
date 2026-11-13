@@ -167,9 +167,12 @@ function render(leads) {
         top.className = "lead-top"
 
         const a = document.createElement("a")
-        a.target = "_blank"
         a.href = lead.url
         a.textContent = lead.title
+        a.addEventListener("click",function(event){
+            event.preventDefault() //stop the normal link behaviour
+            chrome.tabs.create({url: lead.url}) //let chrome open it in a new tab
+        })
         top.appendChild(a)
 
         const tagSpan = document.createElement("span")
@@ -177,6 +180,7 @@ function render(leads) {
         tagSpan.textContent = lead.tag
         top.appendChild(tagSpan)
         li.appendChild(top)
+        
 
         // note
         if (lead.note) {
