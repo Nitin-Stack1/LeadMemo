@@ -9,7 +9,7 @@ const inputBtn = document.getElementById("input-btn")
 const tabBtn = document.getElementById("tab-btn")
 const deleteBtn = document.getElementById("delete-btn")
 const ulEl = document.getElementById("ul-el")
-const customTagEl = document.getElementById("curstom-tag-el")
+const customTagEl = document.getElementById("custom-tag-el")
 
 // Load saved leads. Old leads get the new fields filled in automatically.
 const saved = JSON.parse(localStorage.getItem("myLeads"))
@@ -62,7 +62,7 @@ function isDuplicate(url){
     })
 }
 
-tagEl.addEventListener("click",function(){
+tagEl.addEventListener("change",function(){
     if(tagEl.value === 'Other'){
         customTagEl.classList.remove('hidden')
         customTagEl.focus()
