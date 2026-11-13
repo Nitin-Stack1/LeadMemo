@@ -1,6 +1,10 @@
 let myLeads = []
 const MAX_WORDS = 50
 
+// Heat limits (must be defined before render runs)
+const HEAT_YELLOW_DAYS = 3
+const HEAT_RED_DAYS = 7
+
 const inputEl = document.getElementById("input-el")
 const noteEl = document.getElementById("note-el")
 const wordCountEl = document.getElementById("word-count")
@@ -11,28 +15,7 @@ const deleteBtn = document.getElementById("delete-btn")
 const ulEl = document.getElementById("ul-el")
 const customTagEl = document.getElementById("custom-tag-el")
 
-// Load saved leads. Old leads get the new fields filled in automatically.
-const saved = JSON.parse(localStorage.getItem("myLeads"))
-if (saved) {
-    myLeads = saved.map(function(item, index) {
-        if (typeof item === "string") {
-            item = { url: item, title: item, note: "" }
-        }
-        const now = Date.now()
-        return {
-            id: item.id || now + index,
-            url: item.url,
-            title: item.title || item.url,
-            note: item.note || "",
-            tag: item.tag || "Other",
-            createdAt: item.createdAt || now,
-            lastTouched: item.lastTouched || now
-        }
-    })
-    saveLeads()
-    render(myLeads)
-}
- //make lead function
+//make lead function
 function makeLead(url, title, note, tag) {
     const now = Date.now()
     return {
@@ -77,12 +60,9 @@ function getTag(){
     if(tagEl.value === 'Other'){
         const custom = customTagEl.value.trim()
         return custom === ""? 'Other' : custom
-    } 
+    }
     return tagEl.value
-
 }
-
-
 
 function countWords(text) {
     const trimmed = text.trim()
@@ -100,6 +80,17 @@ function touchedText(timestamp) {
     if (days === 0) return "today"
     if (days === 1) return "1 day ago"
     return days + " days ago"
+}
+
+function getHeat(timestamp){
+    const days = daysSince(timestamp)
+    if (days >= HEAT_RED_DAYS) return "red"
+    if (days >= HEAT_YELLOW_DAYS) return "yellow"
+    return "green"
+}
+
+function openLink(url){
+    chrome.tabs.create({url: url})
 }
 
 noteEl.addEventListener("input", function() {
@@ -134,13 +125,14 @@ tabBtn.addEventListener("click", function() {
         render(myLeads)
     })
 })
+
 //save button clicked then this function invoked
 inputBtn.addEventListener("click", function() {
     const value = inputEl.value.trim()
     if (value === "") return
 
     if(isDuplicate(value)){
-        alert('You already saved this link')
+        alert("You already saved this link!")
         return
     }
     myLeads.push(makeLead(value, value, noteEl.value.trim(), getTag()))
@@ -162,25 +154,31 @@ function render(leads) {
         const lead = leads[i]
         const li = document.createElement("li")
 
-        // top row: title link + tag
+        // top row: dot + title on the left, tag on the right
         const top = document.createElement("div")
         top.className = "lead-top"
+
+        const left = document.createElement("div")
+
+        const dot = document.createElement("span")
+        dot.className = "dot " + getHeat(lead.lastTouched)
+        left.appendChild(dot)
 
         const a = document.createElement("a")
         a.href = lead.url
         a.textContent = lead.title
-        a.addEventListener("click",function(event){
+        a.addEventListener("click", function(event){
             event.preventDefault() //stop the normal link behaviour
-            chrome.tabs.create({url: lead.url}) //let chrome open it in a new tab
+            openLink(lead.url)     //let chrome open it in a new tab
         })
-        top.appendChild(a)
+        left.appendChild(a)
+        top.appendChild(left)
 
         const tagSpan = document.createElement("span")
         tagSpan.className = "tag"
         tagSpan.textContent = lead.tag
         top.appendChild(tagSpan)
         li.appendChild(top)
-        
 
         // note
         if (lead.note) {
@@ -225,4 +223,27 @@ function render(leads) {
         li.appendChild(actions)
         ulEl.appendChild(li)
     }
+}
+
+// Load saved leads. This must stay at the END of the file,
+// so everything above (constants, functions) is ready before render runs.
+const saved = JSON.parse(localStorage.getItem("myLeads"))
+if (saved) {
+    myLeads = saved.map(function(item, index) {
+        if (typeof item === "string") {
+            item = { url: item, title: item, note: "" }
+        }
+        const now = Date.now()
+        return {
+            id: item.id || now + index,
+            url: item.url,
+            title: item.title || item.url,
+            note: item.note || "",
+            tag: item.tag || "Other",
+            createdAt: item.createdAt || now,
+            lastTouched: item.lastTouched || now
+        }
+    })
+    saveLeads()
+    render(myLeads)
 }
