@@ -118,3 +118,7 @@ li {
     color: #b00020;
     border-color: #b00020;
 }
+
+.hidden{
+    display: none;
+}

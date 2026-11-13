@@ -9,6 +9,7 @@ const inputBtn = document.getElementById("input-btn")
 const tabBtn = document.getElementById("tab-btn")
 const deleteBtn = document.getElementById("delete-btn")
 const ulEl = document.getElementById("ul-el")
+const customTagEl = document.getElementById("curstom-tag-el")
 
 // Load saved leads. Old leads get the new fields filled in automatically.
 const saved = JSON.parse(localStorage.getItem("myLeads"))
@@ -60,6 +61,29 @@ function isDuplicate(url){
         return normalizeUrl(lead.url) === newUrl
     })
 }
+
+tagEl.addEventListener("click",function(){
+    if(tagEl.value === 'Other'){
+        customTagEl.classList.remove('hidden')
+        customTagEl.focus()
+    }else{
+        customTagEl.classList.add('hidden')
+        customTagEl.value = ""
+    }
+})
+
+//decide which tag to save
+function getTag(){
+    if(tagEl.value === 'Other'){
+        const custom = customTagEl.value.trim()
+        return custom === ""? 'Other' : custom
+    } 
+    return tagEl.value
+
+}
+
+
+
 function countWords(text) {
     const trimmed = text.trim()
     if (trimmed === "") return 0
@@ -92,6 +116,7 @@ function saveLeads() {
 function resetForm() {
     inputEl.value = ""
     noteEl.value = ""
+    customTagEl.value = ""
     wordCountEl.textContent = "0 / " + MAX_WORDS + " words"
 }
 
@@ -103,7 +128,7 @@ tabBtn.addEventListener("click", function() {
             alert("You already saved this link!")
             return
         }
-        myLeads.push(makeLead(tabs[0].url, tabs[0].title, noteEl.value.trim(), tagEl.value))
+        myLeads.push(makeLead(tabs[0].url, tabs[0].title, noteEl.value.trim(), getTag()))
         saveLeads()
         resetForm()
         render(myLeads)
@@ -118,7 +143,7 @@ inputBtn.addEventListener("click", function() {
         alert('You already saved this link')
         return
     }
-    myLeads.push(makeLead(value, value, noteEl.value.trim(), tagEl.value))
+    myLeads.push(makeLead(value, value, noteEl.value.trim(), getTag()))
     saveLeads()
     resetForm()
     render(myLeads)
