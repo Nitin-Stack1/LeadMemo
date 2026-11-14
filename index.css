@@ -134,3 +134,21 @@ li {
 .dot.green { background: #2e9e4f; }
 .dot.yellow { background: #f2b705; }
 .dot.red { background: #d93025; }
+
+#top-three {
+    margin-top: 16px;
+    padding: 8px;
+    border: 1px solid #5f9341;
+    border-radius: 4px;
+    background: #f6faf3;
+}
+
+#top-three h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.top-item {
+    font-size: 13px;
+    margin-top: 4px;
+}

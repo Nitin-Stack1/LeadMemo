@@ -4,7 +4,7 @@ const MAX_WORDS = 50
 // Heat limits (must be defined before render runs)
 const HEAT_YELLOW_DAYS = 3
 const HEAT_RED_DAYS = 7
-
+ 
 const inputEl = document.getElementById("input-el")
 const noteEl = document.getElementById("note-el")
 const wordCountEl = document.getElementById("word-count")
@@ -14,7 +14,7 @@ const tabBtn = document.getElementById("tab-btn")
 const deleteBtn = document.getElementById("delete-btn")
 const ulEl = document.getElementById("ul-el")
 const customTagEl = document.getElementById("custom-tag-el")
-
+const topThreeEl = document.getElementById("top-three")
 //make lead function
 function makeLead(url, title, note, tag) {
     const now = Date.now()
@@ -25,7 +25,8 @@ function makeLead(url, title, note, tag) {
         note: note,
         tag: tag,
         createdAt: now,
-        lastTouched: now
+        lastTouched: now,
+        contactCount:0
     }
 }
 
@@ -76,8 +77,14 @@ function daysSince(timestamp) {
 }
 
 function touchedText(timestamp) {
+    const minutes = Math.floor((Date.now() - timestamp) / (1000 * 60))
+    if (minutes < 1) return "just now"
+    if (minutes < 60) return minutes + " min ago"
+
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return hours + (hours === 1 ? " hour ago" : " hours ago")
+
     const days = daysSince(timestamp)
-    if (days === 0) return "today"
     if (days === 1) return "1 day ago"
     return days + " days ago"
 }
@@ -191,7 +198,11 @@ function render(leads) {
         // last touched
         const meta = document.createElement("p")
         meta.className = "meta"
-        meta.textContent = "Last touched: " + touchedText(lead.lastTouched)
+        let metaText = "Last touched: " + touchedText(lead.lastTouched)
+        if(lead.contactCount>0){
+            metaText+=" | Contacted " + lead.contactCount + (lead.contactCount === 1 ? " time " : " times ")
+        }
+        meta.textContent = metaText
         li.appendChild(meta)
 
         // buttons
@@ -203,6 +214,7 @@ function render(leads) {
         contactedBtn.textContent = "Contacted"
         contactedBtn.addEventListener("click", function() {
             lead.lastTouched = Date.now()
+            lead.contactCount = (lead.contactCount || 0)+1
             saveLeads()
             render(myLeads)
         })
@@ -223,6 +235,7 @@ function render(leads) {
         li.appendChild(actions)
         ulEl.appendChild(li)
     }
+    renderTopThree()
 }
 
 // Load saved leads. This must stay at the END of the file,
@@ -241,9 +254,75 @@ if (saved) {
             note: item.note || "",
             tag: item.tag || "Other",
             createdAt: item.createdAt || now,
-            lastTouched: item.lastTouched || now
+            lastTouched: item.lastTouched || now,
+            contactCount:item.contactCount || 0
         }
     })
     saveLeads()
     render(myLeads)
+}
+
+function getTopThree(){
+    return myLeads
+    .filter(function(lead){
+        return getHeat(lead.lastTouched)!== 'green'
+    })
+    .sort(function(a,b){
+        return a.lastTouched - b.lastTouched
+    })
+    .slice(0,3)
+}
+
+function renderTopThree(){
+    topThreeEl.innerHTML = ""
+    if(myLeads.length == 0) return 
+    const heading = document.createElement("h3")
+    heading.textContent = "Today's Top 3"
+    topThreeEl.appendChild(heading)
+
+
+    const topLeads = getTopThree()
+
+    if(topLeads.length === 0){
+        const msg = document.createElement('p')
+        msg.className = 'meta'
+        msg.textContent = "All your leads are warm"
+
+        topThreeEl.appendChild(msg)
+        return
+    }
+
+
+    for(let i=0;i<topLeads.length;i++){
+        const lead = topLeads[i]
+        const item = document.createElement('div')
+        item.className = 'top-item'
+
+        const dot = document.createElement('span')
+        dot.className = 'dot'+getHeat(lead.lastTouched)
+        item.appendChild(dot)
+
+        const a = document.createElement("a")
+        a.href = lead.url
+        a.textContent = lead.title
+
+
+        a.addEventListener("click",function(event){
+            event.preventDefault()
+            openLink(lead.url)
+
+        })
+
+        item.appendChild(a)
+
+        const when = document.createElement("span")
+        when.className = "meta"
+        when.textContent = " - "+touchedText(lead.lastTouched)
+        item.appendChild(when)
+
+        topThreeEl.appendChild(item)
+
+    }
+
+
 }
