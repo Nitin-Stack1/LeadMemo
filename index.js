@@ -41,11 +41,32 @@ function isContactLead(lead) {
 
 function normalizeUrl(url){
     let clean = url.trim().toLowerCase()
-    clean = clean.split('#')[0] //remove the #section part
+    clean = clean.replace(/^https?:\/\/(www\.)?/, "") //remove https://, http:// and www.
+    clean = clean.split('#')[0]                         //remove the #section part
     if(clean.endsWith('/')){
-        clean = clean.slice(0,-1) //remove the last slash
+        clean = clean.slice(0,-1)                       //remove the last slash
     }
     return clean
+}
+
+// make a full link from what the user typed, or return null if it is not a link
+function toValidUrl(text) {
+    let value = text.trim()
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+        value = "https://" + value
+    }
+    try {
+        const url = new URL(value)
+        if (!url.hostname.includes(".")) return null
+        return url.href
+    } catch (error) {
+        return null
+    }
+}
+
+// readable name for a link, e.g. linkedin.com/in/rahul-sharma
+function displayTitle(url) {
+    return url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "")
 }
 
 function isDuplicate(url){
@@ -169,14 +190,19 @@ tabBtn.addEventListener("click", function() {
 
 //save button clicked then this function invoked
 inputBtn.addEventListener("click", function() {
-    const value = inputEl.value.trim()
-    if (value === "") return
+    if (inputEl.value.trim() === "") return
 
-    if(isDuplicate(value)){
+    const url = toValidUrl(inputEl.value)
+    if (url === null) {
+        alert("Please paste a valid link (like linkedin.com/in/name), not a name.")
+        return
+    }
+
+    if(isDuplicate(url)){
         alert("You already saved this link!")
         return
     }
-    myLeads.push(makeLead(value, value, noteEl.value.trim(), getTag()))
+    myLeads.push(makeLead(url, displayTitle(url), noteEl.value.trim(), getTag()))
     saveLeads()
     resetForm()
     render(myLeads)
