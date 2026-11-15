@@ -4,17 +4,21 @@ const MAX_WORDS = 50
 // Heat limits (must be defined before render runs)
 const HEAT_YELLOW_DAYS = 3
 const HEAT_RED_DAYS = 7
- 
+
+// Tags that need contact tracking. Every other tag is just a link to remember.
+const CONTACT_TAGS = ["Client", "Job"]
+
 const inputEl = document.getElementById("input-el")
 const noteEl = document.getElementById("note-el")
 const wordCountEl = document.getElementById("word-count")
 const tagEl = document.getElementById("tag-el")
+const customTagEl = document.getElementById("custom-tag-el")
 const inputBtn = document.getElementById("input-btn")
 const tabBtn = document.getElementById("tab-btn")
 const deleteBtn = document.getElementById("delete-btn")
 const ulEl = document.getElementById("ul-el")
-const customTagEl = document.getElementById("custom-tag-el")
 const topThreeEl = document.getElementById("top-three")
+
 //make lead function
 function makeLead(url, title, note, tag) {
     const now = Date.now()
@@ -26,8 +30,13 @@ function makeLead(url, title, note, tag) {
         tag: tag,
         createdAt: now,
         lastTouched: now,
-        contactCount:0
+        contactCount: 0
     }
+}
+
+// does this lead need contact tracking?
+function isContactLead(lead) {
+    return CONTACT_TAGS.includes(lead.tag)
 }
 
 function normalizeUrl(url){
@@ -46,6 +55,7 @@ function isDuplicate(url){
     })
 }
 
+// show the custom tag box only when "Other" is selected
 tagEl.addEventListener("change",function(){
     if(tagEl.value === 'Other'){
         customTagEl.classList.remove('hidden')
@@ -97,7 +107,31 @@ function getHeat(timestamp){
 }
 
 function openLink(url){
+    if (!/^(https?|chrome|file):\/\//i.test(url)) return
     chrome.tabs.create({url: url})
+}
+
+// text under each lead (different for contact leads and plain links)
+function statusText(lead) {
+    if (!isContactLead(lead)) {
+        return "Last opened: " + touchedText(lead.lastTouched)
+    }
+    const count = lead.contactCount || 0
+    if (count > 0) {
+        return "Last contacted: " + touchedText(lead.lastTouched) +
+            " | Contacted " + count + (count === 1 ? " time" : " times")
+    }
+    return "Saved " + touchedText(lead.lastTouched) + ", not contacted yet"
+}
+
+// clicking a plain link counts as opening it, so it stops getting cold
+function openLead(lead) {
+    if (!isContactLead(lead)) {
+        lead.lastTouched = Date.now()
+        saveLeads()
+        render(myLeads)
+    }
+    openLink(lead.url)
 }
 
 noteEl.addEventListener("input", function() {
@@ -155,6 +189,62 @@ deleteBtn.addEventListener("dblclick", function() {
     render(myLeads)
 })
 
+function getTopThree(){
+    return myLeads
+    .filter(function(lead){
+        return getHeat(lead.lastTouched) !== 'green'
+    })
+    .sort(function(a,b){
+        return a.lastTouched - b.lastTouched
+    })
+    .slice(0,3)
+}
+
+function renderTopThree(){
+    topThreeEl.innerHTML = ""
+    if(myLeads.length === 0) return
+
+    const heading = document.createElement("h3")
+    heading.textContent = "Today's Top 3"
+    topThreeEl.appendChild(heading)
+
+    const topLeads = getTopThree()
+
+    if(topLeads.length === 0){
+        const msg = document.createElement('p')
+        msg.className = 'meta'
+        msg.textContent = "All your leads are warm"
+        topThreeEl.appendChild(msg)
+        return
+    }
+
+    for(let i = 0; i < topLeads.length; i++){
+        const lead = topLeads[i]
+        const item = document.createElement('div')
+        item.className = 'top-item'
+
+        const dot = document.createElement('span')
+        dot.className = 'dot ' + getHeat(lead.lastTouched)
+        item.appendChild(dot)
+
+        const a = document.createElement("a")
+        a.href = lead.url
+        a.textContent = lead.title
+        a.addEventListener("click", function(event){
+            event.preventDefault()
+            openLead(lead)
+        })
+        item.appendChild(a)
+
+        const when = document.createElement("span")
+        when.className = "meta"
+        when.textContent = " - " + statusText(lead)
+        item.appendChild(when)
+
+        topThreeEl.appendChild(item)
+    }
+}
+
 function render(leads) {
     ulEl.innerHTML = ""
     for (let i = 0; i < leads.length; i++) {
@@ -176,7 +266,7 @@ function render(leads) {
         a.textContent = lead.title
         a.addEventListener("click", function(event){
             event.preventDefault() //stop the normal link behaviour
-            openLink(lead.url)     //let chrome open it in a new tab
+            openLead(lead)
         })
         left.appendChild(a)
         top.appendChild(left)
@@ -195,30 +285,30 @@ function render(leads) {
             li.appendChild(p)
         }
 
-        // last touched
+        // status line
         const meta = document.createElement("p")
         meta.className = "meta"
-        let metaText = "Last touched: " + touchedText(lead.lastTouched)
-        if(lead.contactCount>0){
-            metaText+=" | Contacted " + lead.contactCount + (lead.contactCount === 1 ? " time " : " times ")
-        }
-        meta.textContent = metaText
+        meta.textContent = statusText(lead)
         li.appendChild(meta)
 
         // buttons
         const actions = document.createElement("div")
         actions.className = "actions"
 
-        const contactedBtn = document.createElement("button")
-        contactedBtn.className = "small-btn"
-        contactedBtn.textContent = "Contacted"
-        contactedBtn.addEventListener("click", function() {
-            lead.lastTouched = Date.now()
-            lead.contactCount = (lead.contactCount || 0)+1
-            saveLeads()
-            render(myLeads)
-        })
-        actions.appendChild(contactedBtn)
+        // Contact button only for contact leads (Client / Job)
+        if (isContactLead(lead)) {
+            const contactBtn = document.createElement("button")
+            contactBtn.className = "small-btn"
+            contactBtn.textContent = "Contact"
+            contactBtn.addEventListener("click", function() {
+                lead.lastTouched = Date.now()
+                lead.contactCount = (lead.contactCount || 0) + 1
+                saveLeads()
+                render(myLeads)
+                openLink(lead.url)
+            })
+            actions.appendChild(contactBtn)
+        }
 
         const delLeadBtn = document.createElement("button")
         delLeadBtn.className = "small-btn del-lead"
@@ -255,74 +345,9 @@ if (saved) {
             tag: item.tag || "Other",
             createdAt: item.createdAt || now,
             lastTouched: item.lastTouched || now,
-            contactCount:item.contactCount || 0
+            contactCount: item.contactCount || 0
         }
     })
     saveLeads()
     render(myLeads)
-}
-
-function getTopThree(){
-    return myLeads
-    .filter(function(lead){
-        return getHeat(lead.lastTouched)!== 'green'
-    })
-    .sort(function(a,b){
-        return a.lastTouched - b.lastTouched
-    })
-    .slice(0,3)
-}
-
-function renderTopThree(){
-    topThreeEl.innerHTML = ""
-    if(myLeads.length == 0) return 
-    const heading = document.createElement("h3")
-    heading.textContent = "Today's Top 3"
-    topThreeEl.appendChild(heading)
-
-
-    const topLeads = getTopThree()
-
-    if(topLeads.length === 0){
-        const msg = document.createElement('p')
-        msg.className = 'meta'
-        msg.textContent = "All your leads are warm"
-
-        topThreeEl.appendChild(msg)
-        return
-    }
-
-
-    for(let i=0;i<topLeads.length;i++){
-        const lead = topLeads[i]
-        const item = document.createElement('div')
-        item.className = 'top-item'
-
-        const dot = document.createElement('span')
-        dot.className = 'dot'+getHeat(lead.lastTouched)
-        item.appendChild(dot)
-
-        const a = document.createElement("a")
-        a.href = lead.url
-        a.textContent = lead.title
-
-
-        a.addEventListener("click",function(event){
-            event.preventDefault()
-            openLink(lead.url)
-
-        })
-
-        item.appendChild(a)
-
-        const when = document.createElement("span")
-        when.className = "meta"
-        when.textContent = " - "+touchedText(lead.lastTouched)
-        item.appendChild(when)
-
-        topThreeEl.appendChild(item)
-
-    }
-
-
 }

@@ -6,13 +6,16 @@
         <input type="text" id="input-el" placeholder="Paste link or lead name">
         <textarea id="note-el" placeholder="Note: why are you saving this? (max 50 words)"></textarea>
         <p id="word-count">0 / 50 words</p>
+
+        <label for="tag-el">What is this link for?</label>
         <select id="tag-el">
-            <option value="Client">Client</option>
-            <option value="Job">Job</option>
+            <option value="Client">Client (contact)</option>
+            <option value="Job">Job (contact)</option>
             <option value="Research">Research</option>
             <option value="Other">Other</option>
         </select>
-        <input type="text" id="custom-tag-el" class="hidden" placeholder="Type your own tag (e.g. Supplier)" maxlength="20">
+        <input type="text" id="custom-tag-el" class="hidden" placeholder="Type your own tag (e.g. Movies, Supplier)" maxlength="20">
+
         <button id="input-btn">SAVE INPUT</button>
         <button id="tab-btn">SAVE TAB</button>
         <button id="delete-btn">DELETE ALL</button>
