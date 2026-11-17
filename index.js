@@ -185,6 +185,7 @@ tabBtn.addEventListener("click", function() {
         saveLeads()
         resetForm()
         render(myLeads)
+        showTopThree()
     })
 })
 
@@ -206,6 +207,7 @@ inputBtn.addEventListener("click", function() {
     saveLeads()
     resetForm()
     render(myLeads)
+    showTopThree()
 })
 
 //double clicked delete button the all links are deleted
@@ -214,7 +216,9 @@ deleteBtn.addEventListener("dblclick", function() {
     myLeads = []
     render(myLeads)
 })
-
+function showTopThree(){
+    topThreeEl.classList.remove("hidden")
+}
 function getTopThree(){
     return myLeads
     .filter(function(lead){
