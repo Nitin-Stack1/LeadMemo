@@ -121,8 +121,8 @@ a {
 
 .dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     margin-right: 6px;
 }
@@ -147,4 +147,99 @@ a {
 .top-item {
     font-size: 13px;
     margin-top: 4px;
+}
+
+.app-header {
+    position: relative;
+    height: 44px;
+    margin-bottom: 8px;
+}
+
+.app-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #3f6a26;
+}
+
+.app-tagline {
+    margin: 0;
+    font-size: 11px;
+    color: #777;
+}
+
+.app-logo {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+
+/* animations */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+body > * {
+    animation: fadeUp 0.35s ease both;
+}
+body > *:nth-child(2) { animation-delay: 0.03s; }
+body > *:nth-child(3) { animation-delay: 0.06s; }
+body > *:nth-child(4) { animation-delay: 0.09s; }
+body > *:nth-child(5) { animation-delay: 0.12s; }
+body > *:nth-child(6) { animation-delay: 0.15s; }
+body > *:nth-child(7) { animation-delay: 0.18s; }
+body > *:nth-child(8) { animation-delay: 0.21s; }
+body > *:nth-child(n+9) { animation-delay: 0.24s; }
+
+button, input, textarea, select {
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+li {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(63, 106, 38, 0.15);
+}
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.55); }
+    70%  { box-shadow: 0 0 0 7px rgba(217, 48, 37, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0); }
+}
+
+.dot.red {
+    animation: pulse 1.6s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+#input-btn:hover:not(:disabled),#tab-btn:hover:not(:disabled){
+    transform: translate(-2px);
+    box-shadow: 0 4px 10px rgba(63, 106, 38, 0.3);
+}
+
+#delete-btn {
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+#delete-btn:hover {
+    background: #fdecea;
+    color: #b00020;
+    border-color: #b00020;
+}
+#input-btn:active, #tab-btn:active, #delete-btn:active {
+    transform: scale(0.96);
 }

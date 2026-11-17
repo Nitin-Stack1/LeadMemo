@@ -377,3 +377,10 @@ if (saved) {
     saveLeads()
     render(myLeads)
 }
+
+//manually set the days 
+function setDays(i,d){
+    myLeads[i].lastTouched = Date.now()-d*24*60*60*1000
+    saveLeads()
+    render(myLeads)
+}
