@@ -163,7 +163,7 @@ noteEl.addEventListener("input", function() {
 })
 
 function saveLeads() {
-    localStorage.setItem("myLeads", JSON.stringify(myLeads))
+        chrome.storage.local.set({myLeads: myLeads})
 }
 
 function resetForm() {
@@ -212,7 +212,7 @@ inputBtn.addEventListener("click", function() {
 
 //double clicked delete button the all links are deleted
 deleteBtn.addEventListener("dblclick", function() {
-    localStorage.removeItem("myLeads")
+    chrome.storage.local.remove("myLeads")
     myLeads = []
     render(myLeads)
 })
@@ -360,27 +360,49 @@ function render(leads) {
 
 // Load saved leads. This must stay at the END of the file,
 // so everything above (constants, functions) is ready before render runs.
-const saved = JSON.parse(localStorage.getItem("myLeads"))
-if (saved) {
-    myLeads = saved.map(function(item, index) {
-        if (typeof item === "string") {
-            item = { url: item, title: item, note: "" }
-        }
-        const now = Date.now()
-        return {
-            id: item.id || now + index,
-            url: item.url,
-            title: item.title || item.url,
-            note: item.note || "",
-            tag: item.tag || "Other",
-            createdAt: item.createdAt || now,
-            lastTouched: item.lastTouched || now,
-            contactCount: item.contactCount || 0
-        }
-    })
-    saveLeads()
-    render(myLeads)
+function normalizeLead(item, index) {
+    if (typeof item === "string") {
+        item = { url: item, title: item, note: "" }
+    }
+    const now = Date.now()
+    return {
+        id: item.id || now + index,
+        url: item.url,
+        title: item.title || item.url,
+        note: item.note || "",
+        tag: item.tag || "Other",
+        createdAt: item.createdAt || now,
+        lastTouched: item.lastTouched || now,
+        contactCount: item.contactCount || 0
+    }
 }
+
+async function loadLeads() {
+    const result = await chrome.storage.local.get("myLeads")
+    let saved = result.myLeads
+
+    // one-time migration from the old localStorage
+    if (!saved) {
+        try {
+            const old = JSON.parse(localStorage.getItem("myLeads"))
+            if (old && old.length > 0) {
+                saved = old
+                await chrome.storage.local.set({ myLeads: old.map(normalizeLead) })
+                localStorage.removeItem("myLeads")
+            }
+        } catch (error) {
+            console.error("LeadMemo migration failed:", error)
+        }
+    }
+
+    if (saved) {
+        myLeads = saved.map(normalizeLead)
+        saveLeads()
+        render(myLeads)
+        if(myLeads.length>0) showTopThree(  )
+    }
+}
+loadLeads()
 
 //manually set the days 
 function setDays(i,d){
