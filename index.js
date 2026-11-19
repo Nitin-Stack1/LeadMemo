@@ -160,6 +160,9 @@ noteEl.addEventListener("input", function() {
     wordCountEl.textContent = words + " / " + MAX_WORDS + " words"
     inputBtn.disabled = words > MAX_WORDS
     tabBtn.disabled = words > MAX_WORDS
+    // counter colour: normal, amber when close, red when over the limit
+    wordCountEl.classList.toggle("near", words >= MAX_WORDS - 10 && words <= MAX_WORDS)
+    wordCountEl.classList.toggle("over", words > MAX_WORDS)
 })
 
 // leads are kept in chrome.storage.local so the popup AND the background
@@ -173,6 +176,7 @@ function resetForm() {
     noteEl.value = ""
     customTagEl.value = ""
     wordCountEl.textContent = "0 / " + MAX_WORDS + " words"
+    wordCountEl.classList.remove("near", "over")
 }
 
 tabBtn.addEventListener("click", function() {
@@ -270,7 +274,7 @@ function renderTopThree(){
 
         const when = document.createElement("span")
         when.className = "meta"
-        when.textContent = " - " + statusText(lead)
+        when.textContent = statusText(lead)
         item.appendChild(when)
 
         topThreeEl.appendChild(item)
