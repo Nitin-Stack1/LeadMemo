@@ -598,3 +598,28 @@ a:hover {
     font: inherit;
 }
 .search + #ul-el { margin-top: 14px; }
+
+.small-btn.edit-btn {
+    background: var(--surface);
+    color: var(--brand-ink);
+}
+.edit-panel {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+}
+.edit-panel input,
+.edit-panel textarea,
+.edit-panel select {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+.edit-panel .meta { margin: 0; }
+.edit-panel .actions { margin-top: 2px; }

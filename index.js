@@ -466,6 +466,95 @@ function visibleLeads(leads) {
 searchEl.addEventListener("input", function () { render(myLeads) })
 filterEl.addEventListener("change", function () { render(myLeads) })
 
+function matchTag(custom) {
+    const text = custom.trim()
+    if (text === "") return "Other"
+    const same = BASE_TAGS.concat(allTags()).find(function (t) {
+        return t.toLowerCase() === text.toLowerCase()
+    })
+    return same || text
+}
+
+function toggleEditPanel(lead, li) {
+    const old = li.querySelector(".edit-panel")
+    if (old) { old.remove(); return }
+
+    const panel = document.createElement("div")
+    panel.className = "edit-panel"
+
+    const titleBox = document.createElement("input")
+    titleBox.type = "text"
+    titleBox.maxLength = 100
+    titleBox.value = lead.title
+    titleBox.placeholder = "Name"
+    panel.appendChild(titleBox)
+
+    const noteBox = document.createElement("textarea")
+    noteBox.rows = 3
+    noteBox.value = lead.note || ""
+    noteBox.placeholder = "Note (max " + MAX_WORDS + " words)"
+    panel.appendChild(noteBox)
+
+    const count = document.createElement("p")
+    count.className = "meta"
+    panel.appendChild(count)
+
+    const tagBox = document.createElement("select")
+    BASE_TAGS.forEach(function (t) { tagBox.appendChild(new Option(t, t)) })
+    const isBase = BASE_TAGS.includes(lead.tag)
+    tagBox.value = isBase ? lead.tag : "Other"
+    panel.appendChild(tagBox)
+
+    const customBox = document.createElement("input")
+    customBox.type = "text"
+    customBox.maxLength = 20
+    customBox.placeholder = "Your own tag"
+    customBox.value = isBase ? "" : lead.tag
+    customBox.classList.toggle("hidden", tagBox.value !== "Other")
+    panel.appendChild(customBox)
+    tagBox.addEventListener("change", function () {
+        customBox.classList.toggle("hidden", tagBox.value !== "Other")
+    })
+
+    const row = document.createElement("div")
+    row.className = "actions"
+    const saveBtn = document.createElement("button")
+    saveBtn.className = "small-btn"
+    saveBtn.textContent = "Save"
+    const cancelBtn = document.createElement("button")
+    cancelBtn.className = "small-btn del-lead"
+    cancelBtn.textContent = "Cancel"
+    row.appendChild(saveBtn)
+    row.appendChild(cancelBtn)
+    panel.appendChild(row)
+
+    function updateCount() {
+        const words = countWords(noteBox.value)
+        count.textContent = words + " / " + MAX_WORDS + " words"
+        saveBtn.disabled = words > MAX_WORDS
+    }
+    noteBox.addEventListener("input", updateCount)
+    updateCount()
+
+    saveBtn.addEventListener("click", function () {
+        const title = titleBox.value.trim()
+        if (title === "") {
+            alert("Name cannot be empty.")
+            return
+        }
+        lead.title = title
+        lead.note = noteBox.value.trim()
+        lead.tag = tagBox.value === "Other" ? matchTag(customBox.value) : tagBox.value
+        lead.updatedAt = Date.now()
+        saveLeads()
+        render(myLeads)
+        showTopThree()
+    })
+    cancelBtn.addEventListener("click", function () { panel.remove() })
+
+    li.appendChild(panel)
+}
+
 function render(leads) {
     fillFilter()
     const total = leads.length
@@ -549,6 +638,14 @@ function render(leads) {
             })
             actions.appendChild(contactBtn)
         }
+
+        const editBtn = document.createElement("button")
+        editBtn.className = "small-btn edit-btn"
+        editBtn.textContent = "Edit"
+        editBtn.addEventListener("click", function() {
+            toggleEditPanel(lead, li)
+        })
+        actions.appendChild(editBtn)
 
         const delLeadBtn = document.createElement("button")
         delLeadBtn.className = "small-btn del-lead"
