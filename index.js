@@ -162,8 +162,10 @@ noteEl.addEventListener("input", function() {
     tabBtn.disabled = words > MAX_WORDS
 })
 
+// leads are kept in chrome.storage.local so the popup AND the background
+// service worker (notifications, later) can both read them
 function saveLeads() {
-        chrome.storage.local.set({myLeads: myLeads})
+    chrome.storage.local.set({ myLeads: myLeads })
 }
 
 function resetForm() {
@@ -358,8 +360,7 @@ function render(leads) {
     renderTopThree()
 }
 
-// Load saved leads. This must stay at the END of the file,
-// so everything above (constants, functions) is ready before render runs.
+// Clean up one saved lead (also upgrades very old string-only leads)
 function normalizeLead(item, index) {
     if (typeof item === "string") {
         item = { url: item, title: item, note: "" }
@@ -377,18 +378,20 @@ function normalizeLead(item, index) {
     }
 }
 
+// Load saved leads. This must stay at the END of the file,
+// so everything above (constants, functions) is ready before render runs.
 async function loadLeads() {
     const result = await chrome.storage.local.get("myLeads")
     let saved = result.myLeads
 
-    // one-time migration from the old localStorage
+    // One-time migration: copy old localStorage leads into chrome.storage.local
     if (!saved) {
         try {
             const old = JSON.parse(localStorage.getItem("myLeads"))
             if (old && old.length > 0) {
                 saved = old
                 await chrome.storage.local.set({ myLeads: old.map(normalizeLead) })
-                localStorage.removeItem("myLeads")
+                localStorage.removeItem("myLeads") // only after the copy succeeded
             }
         } catch (error) {
             console.error("LeadMemo migration failed:", error)
@@ -399,10 +402,36 @@ async function loadLeads() {
         myLeads = saved.map(normalizeLead)
         saveLeads()
         render(myLeads)
-        if(myLeads.length>0) showTopThree(  )
+        if (myLeads.length > 0) showTopThree()
     }
 }
 loadLeads()
+
+// ---- Settings (notifications on/off, daily reminder on/off) ----
+const notifToggle = document.getElementById("notif-toggle")
+const dailyToggle = document.getElementById("daily-toggle")
+
+function saveSettings() {
+    chrome.storage.local.set({
+        settings: {
+            notifications: notifToggle.checked,
+            dailyReminder: dailyToggle.checked
+        }
+    })
+    dailyToggle.disabled = !notifToggle.checked
+}
+
+async function loadSettings() {
+    const result = await chrome.storage.local.get("settings")
+    const settings = Object.assign({ notifications: true, dailyReminder: true }, result.settings)
+    notifToggle.checked = settings.notifications
+    dailyToggle.checked = settings.dailyReminder
+    dailyToggle.disabled = !settings.notifications
+}
+
+notifToggle.addEventListener("change", saveSettings)
+dailyToggle.addEventListener("change", saveSettings)
+loadSettings()
 
 //manually set the days 
 function setDays(i,d){

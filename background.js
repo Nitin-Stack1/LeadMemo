@@ -16,10 +16,13 @@ function getHeat(timestamp) {
     return "green"
 }
 
+const DEFAULT_SETTINGS = { notifications: true, dailyReminder: true }
+
 async function checkLeads() {
-    const data = await chrome.storage.local.get(["myLeads", "notified"])
+    const data = await chrome.storage.local.get(["myLeads", "notified", "settings", "lastReminderDay"])
     const leads = data.myLeads || []
-    const notified = data.notified || {}   // remembers what we already told the user
+    const settings = Object.assign({}, DEFAULT_SETTINGS, data.settings)
+    const notified = data.notified || {}
     const newNotified = {}
     const alerts = []
     let redCount = 0
@@ -27,7 +30,7 @@ async function checkLeads() {
     for (const lead of leads) {
         const heat = getHeat(lead.lastTouched)
         if (heat === "red") redCount++
-        if (heat === "green") continue      // green leads are forgotten, so they can alert again later
+        if (heat === "green") continue
 
         const previous = notified[lead.id] || "green"
         if (RANK[heat] > RANK[previous]) {
@@ -38,11 +41,14 @@ async function checkLeads() {
 
     await chrome.storage.local.set({ notified: newNotified })
 
-    // red-count badge on the extension icon
     await chrome.action.setBadgeText({ text: redCount > 0 ? String(redCount) : "" })
     await chrome.action.setBadgeBackgroundColor({ color: "#d93025" })
 
-    // one notification per check
+    if (!settings.notifications) return   // notifications turned off: badge only
+
+    const today = new Date().toDateString()
+
+    // 1) a lead just got colder: tell the user (once per colour change)
     if (alerts.length === 1) {
         const a = alerts[0]
         chrome.notifications.create("leadmemo-followup", {
@@ -51,6 +57,7 @@ async function checkLeads() {
             title: a.heat === "red" ? "Follow up now" : "Lead is getting cold",
             message: a.title
         })
+        await chrome.storage.local.set({ lastReminderDay: today })
     } else if (alerts.length > 1) {
         chrome.notifications.create("leadmemo-followup", {
             type: "basic",
@@ -58,6 +65,17 @@ async function checkLeads() {
             title: "LeadMemo",
             message: alerts.length + " leads need your follow-up"
         })
+        await chrome.storage.local.set({ lastReminderDay: today })
+    }
+    // 2) daily reminder: red leads still waiting, at most once a day
+    else if (settings.dailyReminder && redCount > 0 && data.lastReminderDay !== today) {
+        chrome.notifications.create("leadmemo-followup", {
+            type: "basic",
+            iconUrl: "icon.png",
+            title: "Still waiting for follow-up",
+            message: redCount + (redCount === 1 ? " lead is" : " leads are") + " still red. Open LeadMemo to contact them."
+        })
+        await chrome.storage.local.set({ lastReminderDay: today })
     }
 }
 
@@ -79,7 +97,6 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
     if (alarm.name === ALARM_NAME) checkLeads()
 })
 
-// run a check whenever leads change (new lead, Contact pressed, setDays test)
 chrome.storage.onChanged.addListener(function (changes, area) {
-    if (area === "local" && changes.myLeads) checkLeads()
+    if (area === "local" && (changes.myLeads || changes.settings)) checkLeads()
 })

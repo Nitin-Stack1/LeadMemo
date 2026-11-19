@@ -243,3 +243,21 @@ li:hover {
 #input-btn:active, #tab-btn:active, #delete-btn:active {
     transform: scale(0.96);
 }
+.settings {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #333;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.setting-row input {
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
