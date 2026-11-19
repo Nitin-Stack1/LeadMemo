@@ -287,6 +287,20 @@ function render(leads) {
         const lead = leads[i]
         const li = document.createElement("li")
 
+        // age strip: 8 cells for day 0..7. Cells fill as the lead gets older,
+        // so you can see how far it is from turning red.
+        const days = daysSince(lead.lastTouched)
+        const age = document.createElement("div")
+        age.className = "age"
+        age.title = days + (days === 1 ? " day" : " days") + " since last touch"
+        for (let k = 0; k < 8; k++) {
+            const cell = document.createElement("span")
+            const colour = k < HEAT_YELLOW_DAYS ? "g" : (k < HEAT_RED_DAYS ? "y" : "r")
+            cell.className = "cell " + colour + (k <= days ? " on" : "")
+            age.appendChild(cell)
+        }
+        li.appendChild(age)
+
         // top row: dot + title on the left, tag on the right
         const top = document.createElement("div")
         top.className = "lead-top"

@@ -1,6 +1,8 @@
-/* LeadMemo popup styles
-   The traffic-light dots are the heart of the app, so each lead card
-   takes its colour from its dot (green / yellow / red). */
+/* LeadMemo popup styles (v3: "memo slips")
+   Same colours as before. Ideas:
+   - each lead is a paper memo slip with an age strip on top
+   - flat paper, square-ish corners, hard offset shadows that press down
+   - the note box looks like ruled notepad paper */
 
 :root {
     --bg: #eef3ea;
@@ -12,13 +14,15 @@
     --brand-strong: #4a7a2f;
     --brand-ink: #2f6b30;
     --header: #285a2b;
+    --edge: #285a2b;         /* outlines */
+    --pop: #285a2b;          /* hard shadows */
     --track: #c5d1bf;
     --green: #2e9e4f;
     --yellow: #f2b705;
     --red: #d93025;
     --yellow-text: #8a6400;
     --red-text: #b3261e;
-    --shadow: rgba(40, 90, 43, 0.18);
+    --font: Bahnschrift, "DIN Alternate", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,10 +36,11 @@
         --brand-strong: #86c062;
         --brand-ink: #9fd47a;
         --header: #1a3a1d;
+        --edge: #4f7a50;
+        --pop: #6fa84c;
         --track: #3a4b3b;
         --yellow-text: #f2c94c;
         --red-text: #ff8a80;
-        --shadow: rgba(0, 0, 0, 0.5);
     }
 }
 
@@ -46,12 +51,12 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    font-size: 13px;
+    font-family: var(--font);
+    font-size: 13.5px;
     line-height: 1.4;
 }
 
-main { padding: 14px; }
+main { padding: 16px 14px 18px; }
 
 .hidden { display: none; }
 
@@ -65,119 +70,135 @@ main { padding: 14px; }
     position: sticky;
     top: 0;
     z-index: 5;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
+    row-gap: 8px;
+    padding: 12px 14px 0;
     background: var(--header);
     color: #fff;
 }
 
 .app-title {
     margin: 0;
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
 }
 
 .app-tagline {
-    margin: 0;
-    font-size: 12px;
+    margin: 2px 0 0;
+    font-size: 12.5px;
     color: rgba(255, 255, 255, 0.75);
-}
-
-/* three small dots after the tagline, like the logo */
-.app-tagline::after {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-left: 10px;
-    margin-right: 24px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 10px 0 0 var(--yellow), 20px 0 0 var(--red);
-    vertical-align: middle;
 }
 
 .app-logo {
     width: 38px;
     height: 38px;
-    border-radius: 10px;
+    border-radius: 8px;
 }
+
+/* legend: what the three colours mean */
+.legend {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 16px;
+    margin: 0 -14px;
+    padding: 7px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+.d {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.d.g { background: var(--green); }
+.d.y { background: var(--yellow); }
+.d.r { background: var(--red); }
 
 /* ---------- capture form ---------- */
 .capture {
     display: grid;
-    gap: 8px;
+    gap: 10px;
 }
 
 .capture input[type="text"],
 .capture textarea,
 .capture select {
     width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid var(--line);
-    border-radius: 10px;
+    padding: 9px 11px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
     background: var(--surface);
     color: var(--ink);
     font: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.capture input[type="text"]:hover,
-.capture textarea:hover,
-.capture select:hover {
-    border-color: var(--brand);
+    transition: box-shadow 0.12s, transform 0.12s;
 }
 
 .capture input[type="text"]:focus,
 .capture textarea:focus,
 .capture select:focus {
     outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--pop);
 }
 
-::placeholder { color: var(--muted); opacity: 0.85; }
+::placeholder { color: var(--muted); opacity: 0.9; }
 
+/* the note box is ruled notepad paper */
 .note-wrap { position: relative; }
 
 .note-wrap textarea {
-    height: 84px;
-    padding-bottom: 26px;
+    height: 92px;
+    padding: 5px 11px 22px;
+    line-height: 22px;
     resize: none;
+    background-image: repeating-linear-gradient(
+        transparent 0,
+        transparent 21px,
+        color-mix(in srgb, var(--brand) 35%, transparent) 21px,
+        color-mix(in srgb, var(--brand) 35%, transparent) 22px
+    );
+    background-attachment: local;
 }
 
 #word-count {
     position: absolute;
-    right: 10px;
-    bottom: 8px;
+    right: 9px;
+    bottom: 6px;
     margin: 0;
-    font-size: 11px;
+    padding: 0 4px;
+    background: var(--surface);
+    font-size: 11.5px;
     color: var(--muted);
     pointer-events: none;
-    transition: color 0.15s;
 }
 
 #word-count.near { color: var(--yellow-text); }
-#word-count.over { color: var(--red-text); font-weight: 600; }
+#word-count.over { color: var(--red-text); font-weight: 700; }
 .note-wrap:has(#word-count.over) textarea {
     border-color: var(--red);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 20%, transparent);
+    box-shadow: 3px 3px 0 var(--red);
 }
 
 .capture label {
     margin-top: 2px;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--brand-ink);
 }
 
 .capture select {
     appearance: none;
     padding-right: 34px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2362705f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2362705f' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     cursor: pointer;
@@ -185,15 +206,15 @@ main { padding: 14px; }
 
 .save-row {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     margin-top: 4px;
 }
 
-/* ---------- buttons ---------- */
+/* ---------- buttons: flat, with a hard shadow that presses down ---------- */
 button {
     font: inherit;
     cursor: pointer;
-    transition: transform 0.12s, box-shadow 0.15s, background 0.15s, color 0.15s, border-color 0.15s;
+    transition: transform 0.08s, box-shadow 0.08s, background 0.12s, color 0.12s;
 }
 
 button:disabled {
@@ -205,34 +226,26 @@ button:disabled {
 #tab-btn {
     flex: 1;
     height: 40px;
-    border-radius: 10px;
-    font-weight: 600;
-    border: 1.5px solid var(--brand);
+    border: 2px solid var(--edge);
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 3px 3px 0 var(--pop);
 }
 
-#input-btn {
-    background: var(--brand);
-    color: #fff;
-}
-
-#tab-btn {
-    background: transparent;
-    color: var(--brand-ink);
-}
+#input-btn { background: var(--brand); color: #fff; }
+#tab-btn { background: var(--surface); color: var(--brand-ink); }
 
 #input-btn:hover:not(:disabled),
 #tab-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px var(--shadow);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--pop);
 }
-
-#input-btn:hover:not(:disabled) { background: var(--brand-strong); }
-#tab-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--brand) 12%, transparent); }
 
 #input-btn:active:not(:disabled),
 #tab-btn:active:not(:disabled) {
-    transform: scale(0.97);
-    box-shadow: none;
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--pop);
 }
 
 /* ---------- options row (switches + delete all) ---------- */
@@ -241,7 +254,9 @@ button:disabled {
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 16px;
-    margin-top: 14px;
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1.5px dashed var(--edge);
 }
 
 .switch {
@@ -249,7 +264,6 @@ button:disabled {
     align-items: center;
     gap: 8px;
     font-size: 12.5px;
-    color: var(--ink);
     cursor: pointer;
     user-select: none;
 }
@@ -258,64 +272,67 @@ button:disabled {
     appearance: none;
     position: relative;
     flex: none;
-    width: 32px;
+    width: 34px;
     height: 18px;
     margin: 0;
-    border-radius: 999px;
-    background: var(--track);
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
+    background: var(--surface);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.15s;
 }
 
 .switch input::after {
     content: "";
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s cubic-bezier(0.3, 1.4, 0.5, 1);
+    top: 1.5px;
+    left: 1.5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 1px;
+    background: var(--edge);
+    transition: transform 0.15s cubic-bezier(0.3, 1.5, 0.5, 1), background 0.15s;
 }
 
 .switch input:checked { background: var(--brand); }
-.switch input:checked::after { transform: translateX(14px); }
-.switch input:disabled { opacity: 0.45; cursor: not-allowed; }
+.switch input:checked::after { transform: translateX(16px); background: #fff; }
+.switch input:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #delete-btn {
     margin-left: auto;
-    padding: 4px 8px;
+    padding: 3px 0;
     border: 0;
-    border-radius: 6px;
     background: transparent;
     color: var(--muted);
     font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-#delete-btn:hover {
-    background: color-mix(in srgb, var(--red) 12%, transparent);
-    color: var(--red-text);
-}
-
+#delete-btn:hover { color: var(--red-text); }
 #delete-btn:hover::after { content: " (double-click)"; }
-#delete-btn:active { transform: scale(0.95); }
 
 /* ---------- Today's Top 3 ---------- */
 #top-three {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border: 1.5px solid var(--line);
-    border-radius: 12px;
+    margin-top: 24px;
+    padding: 18px 12px 6px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
     background: var(--surface);
 }
 
+/* heading is a small sticker stuck on the top edge */
 #top-three h3 {
-    margin: 0 0 6px;
+    position: relative;
+    display: inline-block;
+    margin: -32px 0 8px -2px;
+    padding: 3px 10px;
+    background: var(--header);
+    color: #fff;
     font-size: 13px;
     font-weight: 700;
-    color: var(--brand-ink);
+    letter-spacing: 0.02em;
+    transform: rotate(-1.5deg);
 }
 
 .top-item {
@@ -323,19 +340,19 @@ button:disabled {
     grid-template-columns: auto 1fr;
     column-gap: 8px;
     align-items: baseline;
-    padding: 7px 0;
+    padding: 8px 0;
 }
 
-.top-item + .top-item { border-top: 1px solid var(--line); }
+.top-item + .top-item { border-top: 1px dashed var(--line); }
 .top-item .dot { margin: 0; position: relative; top: -1px; }
-.top-item a { font-size: 13px; }
-.top-item .meta { grid-column: 2; margin-top: 1px; }
+.top-item .meta { grid-column: 2; margin: 1px 0 0; }
+#top-three > p.meta { margin: 0 0 12px; }
 
-/* ---------- lead cards ---------- */
+/* ---------- lead memo slips ---------- */
 #ul-el {
     display: grid;
-    gap: 10px;
-    margin: 14px 0 0;
+    gap: 14px;
+    margin: 20px 0 0;
     padding: 0;
     list-style: none;
 }
@@ -343,46 +360,58 @@ button:disabled {
 #ul-el li {
     --heat: var(--green);
     --heat-text: var(--muted);
-    padding: 11px 12px 11px 18px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--heat) 6%, var(--surface));
-    box-shadow: inset 5px 0 0 var(--heat);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    padding: 0 0 12px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
+    background: var(--surface);
+    transition: transform 0.12s, box-shadow 0.12s;
 }
 
-#ul-el li:has(.dot.yellow) {
-    --heat: var(--yellow);
-    --heat-text: var(--yellow-text);
-    background: color-mix(in srgb, var(--heat) 9%, var(--surface));
-}
+#ul-el li:has(.dot.yellow) { --heat: var(--yellow); --heat-text: var(--yellow-text); }
+#ul-el li:has(.dot.red)    { --heat: var(--red);    --heat-text: var(--red-text); }
 
-#ul-el li:has(.dot.red) {
-    --heat: var(--red);
-    --heat-text: var(--red-text);
-    background: color-mix(in srgb, var(--heat) 7%, var(--surface));
-}
-
+/* hover: the slip lifts off the page, its shadow takes the heat colour */
 #ul-el li:hover {
-    transform: translateY(-2px);
-    box-shadow: inset 8px 0 0 var(--heat), 0 8px 18px var(--shadow);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--heat);
 }
 
-/* empty list: show an invitation instead of a blank space */
+/* empty list: show an invitation */
 #ul-el:empty::before {
     content: "No leads yet. Paste a link above, or open a page and press Save tab.";
     padding: 18px 16px;
-    border: 1.5px dashed var(--line);
-    border-radius: 12px;
+    border: 1.5px dashed var(--edge);
+    border-radius: 3px;
     color: var(--muted);
     text-align: center;
 }
+
+/* age strip: 8 cells = day 0 to day 7. Filled cells show how old the lead is;
+   faint cells show the road still ahead before it turns red. */
+.age {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    height: 7px;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid var(--edge);
+    background: var(--edge);
+}
+
+.cell { background: var(--surface); }
+.cell.g { background: color-mix(in srgb, var(--green) 25%, var(--surface)); }
+.cell.y { background: color-mix(in srgb, var(--yellow) 30%, var(--surface)); }
+.cell.r { background: color-mix(in srgb, var(--red) 25%, var(--surface)); }
+.cell.g.on { background: var(--green); }
+.cell.y.on { background: var(--yellow); }
+.cell.r.on { background: var(--red); }
 
 .lead-top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
+    padding: 0 12px;
 }
 
 .lead-top > div {
@@ -403,13 +432,13 @@ button:disabled {
 
 a {
     color: var(--ink);
-    font-weight: 600;
+    font-weight: 700;
     text-decoration: none;
     background-image: linear-gradient(var(--brand), var(--brand));
     background-repeat: no-repeat;
     background-position: 0 100%;
     background-size: 0 2px;
-    transition: background-size 0.2s ease, color 0.15s;
+    transition: background-size 0.15s ease, color 0.15s;
 }
 
 a:hover {
@@ -417,69 +446,67 @@ a:hover {
     background-size: 100% 2px;
 }
 
+/* tag: a square label, not a pill */
 .tag {
     flex: none;
-    padding: 2px 9px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--brand) 18%, transparent);
-    color: var(--brand-ink);
-    font-size: 11px;
-    font-weight: 600;
     max-width: 120px;
+    padding: 1px 7px;
+    border: 1.5px solid var(--edge);
+    border-radius: 2px;
+    color: var(--brand-ink);
+    font-size: 11.5px;
+    font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .note {
-    margin: 5px 0 0 18px;
-    color: var(--ink);
-    font-size: 13px;
+    margin: 5px 12px 0 30px;
     overflow-wrap: anywhere;
 }
 
 .meta {
-    margin: 3px 0 0 18px;
+    margin: 3px 12px 0 30px;
     color: var(--muted);
-    font-size: 12px;
+    font-size: 12.5px;
 }
 
 #ul-el .meta { color: var(--heat-text); }
-#top-three .meta { margin-left: 0; }
 
 .actions {
     display: flex;
-    gap: 6px;
-    margin: 9px 0 0 18px;
+    gap: 10px;
+    margin: 10px 12px 0 30px;
 }
 
 .small-btn {
     height: 28px;
     padding: 0 12px;
-    border: 1.5px solid var(--brand);
-    border-radius: 8px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
     background: var(--brand);
     color: #fff;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12.5px;
+    font-weight: 700;
+    box-shadow: 2px 2px 0 var(--pop);
 }
 
-.small-btn:hover { background: var(--brand-strong); transform: translateY(-1px); }
-.small-btn:active { transform: scale(0.95); }
+.small-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pop); }
+.small-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--pop); }
 
 .small-btn.del-lead {
-    border-color: transparent;
+    padding: 0;
+    border: 0;
     background: transparent;
     color: var(--muted);
+    box-shadow: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-/* when Delete is the only button (plain links), line it up with the text above */
-.small-btn.del-lead:first-child { margin-left: -12px; }
-
-.small-btn.del-lead:hover {
-    background: color-mix(in srgb, var(--red) 12%, transparent);
-    color: var(--red-text);
-}
+.small-btn.del-lead:hover { color: var(--red-text); transform: none; }
+.small-btn.del-lead:active { transform: none; }
 
 /* ---------- heat dots ---------- */
 .dot {
@@ -505,7 +532,7 @@ a:hover {
 /* ---------- scrollbar ---------- */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--track); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: var(--track); }
 ::-webkit-scrollbar-thumb:hover { background: var(--brand); }
 
 @media (prefers-reduced-motion: reduce) {
