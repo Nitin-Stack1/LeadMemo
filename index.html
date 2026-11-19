@@ -36,6 +36,7 @@
                     <option value="Other">Other</option>
                 </select>
                 <input type="text" id="custom-tag-el" class="hidden" placeholder="Type your own tag (e.g. Movies, Supplier)" maxlength="20">
+                <div id="tag-suggest" class="suggest hidden"></div>
 
                 <div class="save-row">
                     <button id="input-btn">Save input</button>
@@ -58,6 +59,10 @@
             </section>
 
             <div id="top-three" class="hidden"></div>
+            <section class="search">
+                <input type="text" id="search-el" placeholder="Search leads (name, note, tag...)">
+                <select id="filter-el"></select>
+            </section>
             <ul id="ul-el"></ul>
         </main>
 

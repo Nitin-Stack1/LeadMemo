@@ -89,11 +89,21 @@ tagEl.addEventListener("change",function(){
     }
 })
 
-//decide which tag to save
+const BASE_TAGS = ["Client", "Job", "Research", "Other"]
+
+function allTags() {
+    return Array.from(new Set(myLeads.map(function (lead) { return lead.tag })))
+}
+
+//decide which tag to save (reuses an existing tag if only the letter case differs)
 function getTag(){
     if(tagEl.value === 'Other'){
         const custom = customTagEl.value.trim()
-        return custom === ""? 'Other' : custom
+        if(custom === "") return 'Other'
+        const same = BASE_TAGS.concat(allTags()).find(function (t) {
+            return t.toLowerCase() === custom.toLowerCase()
+        })
+        return same || custom
     }
     return tagEl.value
 }
@@ -190,6 +200,7 @@ function resetForm() {
     customTagEl.value = ""
     wordCountEl.textContent = "0 / " + MAX_WORDS + " words"
     wordCountEl.classList.remove("near", "over")
+    showSuggestions([])
 }
 
 tabBtn.addEventListener("click", function() {
@@ -313,8 +324,159 @@ function renderTopThree(){
     }
 }
 
+const searchEl = document.getElementById("search-el")
+const filterEl = document.getElementById("filter-el")
+const suggestEl = document.getElementById("tag-suggest")
+
+const TAG_WORDS = {
+    Client: ["client", "customer", "proposal", "quote", "quotation", "invoice", "payment", "project", "deal", "order", "contract", "demo", "pricing", "budget", "requirement", "buyer", "meeting", "enquiry", "inquiry"],
+    Job: ["job", "hiring", "hire", "interview", "recruiter", "resume", "cv", "salary", "vacancy", "opening", "position", "role", "apply", "application", "offer", "referral", "ctc"]
+}
+const STOP_WORDS = new Set("the and for with this that from have has about into your you are was were will not but can our their they them then than also just need want call send get got how what when where who why very more some any all new old now today tomorrow said sent after before great good best really talk told asked saying list lists watch like make made will would could should please thanks thank very much many".split(" "))
+
+function words(text) {
+    return String(text).toLowerCase().match(/[a-z0-9]+/g) || []
+}
+
+function capitalize(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1)
+}
+
+function ruleSuggestions(note) {
+    const list = words(note)
+    const lower = note.toLowerCase()
+    const base = []
+    Object.keys(TAG_WORDS).forEach(function (tag) {
+        const hits = list.filter(function (w) { return TAG_WORDS[tag].includes(w) }).length
+        if (hits > 0) base.push({ tag: tag, hits: hits })
+    })
+    base.sort(function (a, b) { return b.hits - a.hits })
+
+    const used = allTags().filter(function (tag) {
+        return !BASE_TAGS.includes(tag) && lower.includes(tag.toLowerCase())
+    })
+    const extra = []
+    list.forEach(function (w) {
+        if (w.length < 4 || STOP_WORDS.has(w) || /^\d+$/.test(w)) return
+        if (!extra.includes(capitalize(w))) extra.push(capitalize(w))
+    })
+    extra.sort(function (a, b) { return b.length - a.length })
+    return { base: base.map(function (b) { return b.tag }), used: used, extra: extra.slice(0, 2) }
+}
+
+function mergeSuggestions(parts) {
+    const out = []
+    parts.forEach(function (tag) {
+        if (!out.some(function (t) { return t.toLowerCase() === tag.toLowerCase() })) out.push(tag)
+    })
+    return out.slice(0, 6)
+}
+
+async function aiTags(note) {
+    if (typeof LanguageModel === "undefined") return []
+    const lang = { expectedInputs: [{ type: "text", languages: ["en"] }], expectedOutputs: [{ type: "text", languages: ["en"] }] }
+    if ((await LanguageModel.availability(lang)) !== "available") return []
+    const session = await LanguageModel.create(Object.assign({}, lang, {
+        initialPrompts: [{ role: "system", content: "Suggest up to 3 short tags (1-2 words each) for a saved link based on the user's note. Reply with only the tags, separated by commas." }]
+    }))
+    try {
+        const out = await session.prompt(note)
+        return String(out).split(",").map(function (t) {
+            return t.trim().replace(/[^\w &-]/g, "")
+        }).filter(function (t) { return t && t.length <= 20 }).slice(0, 3)
+    } finally {
+        session.destroy()
+    }
+}
+
+function pickTag(tag) {
+    if (BASE_TAGS.includes(tag)) {
+        tagEl.value = tag
+        tagEl.dispatchEvent(new Event("change"))
+    } else {
+        tagEl.value = "Other"
+        tagEl.dispatchEvent(new Event("change"))
+        customTagEl.value = tag.slice(0, 20)
+    }
+}
+
+function showSuggestions(tags) {
+    suggestEl.innerHTML = ""
+    suggestEl.classList.toggle("hidden", tags.length === 0)
+    if (tags.length === 0) return
+    const label = document.createElement("span")
+    label.className = "suggest-label"
+    label.textContent = "Suggested tags:"
+    suggestEl.appendChild(label)
+    tags.forEach(function (tag) {
+        const chip = document.createElement("button")
+        chip.type = "button"
+        chip.className = "chip"
+        chip.textContent = tag
+        chip.addEventListener("click", function () { pickTag(tag) })
+        suggestEl.appendChild(chip)
+    })
+}
+
+let suggestTimer = null
+let suggestRun = 0
+noteEl.addEventListener("input", function () {
+    clearTimeout(suggestTimer)
+    const note = noteEl.value.trim()
+    if (countWords(note) < 2) {
+        suggestRun++
+        showSuggestions([])
+        return
+    }
+    suggestTimer = setTimeout(async function () {
+        const run = ++suggestRun
+        const rules = ruleSuggestions(note)
+        showSuggestions(mergeSuggestions(rules.base.concat(rules.used, rules.extra)))
+        try {
+            const ai = await aiTags(note)
+            if (run !== suggestRun || ai.length === 0) return
+            showSuggestions(mergeSuggestions(rules.base.concat(ai, rules.used, rules.extra)))
+        } catch (error) {
+            console.error("LeadMemo tag AI failed:", error)
+        }
+    }, 400)
+})
+
+function fillFilter() {
+    const current = filterEl.value
+    filterEl.innerHTML = ""
+    filterEl.appendChild(new Option("All tags", ""))
+    filterEl.appendChild(new Option("Red leads (7+ days)", "__red"))
+    allTags().sort().forEach(function (tag) { filterEl.appendChild(new Option(tag, tag)) })
+    const exists = Array.from(filterEl.options).some(function (o) { return o.value === current })
+    filterEl.value = exists ? current : ""
+}
+
+function visibleLeads(leads) {
+    const query = words(searchEl.value)
+    const filter = filterEl.value
+    return leads.filter(function (lead) {
+        if (filter === "__red" && getHeat(lead.lastTouched) !== "red") return false
+        if (filter && filter !== "__red" && lead.tag !== filter) return false
+        const text = (lead.title + " " + lead.url + " " + lead.note + " " + lead.tag).toLowerCase()
+        return query.every(function (w) { return text.includes(w) })
+    })
+}
+
+searchEl.addEventListener("input", function () { render(myLeads) })
+filterEl.addEventListener("change", function () { render(myLeads) })
+
 function render(leads) {
+    fillFilter()
+    const total = leads.length
+    leads = visibleLeads(leads)
     ulEl.innerHTML = ""
+    if (total > 0 && leads.length === 0) {
+        const none = document.createElement("li")
+        none.className = "meta"
+        none.textContent = "No leads match your search."
+        ulEl.appendChild(none)
+    }
     for (let i = 0; i < leads.length; i++) {
         const lead = leads[i]
         const li = document.createElement("li")

@@ -556,3 +556,45 @@ a:hover {
         transition: none !important;
     }
 }
+
+.suggest {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+.suggest-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+.chip {
+    padding: 3px 10px;
+    border: 1.5px solid var(--edge);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--brand-ink);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.chip:hover { background: var(--brand); color: #fff; }
+
+.search {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-top: 16px;
+}
+.search input,
+.search select {
+    height: 34px;
+    padding: 0 10px;
+    border: 1.5px solid var(--edge);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+.search + #ul-el { margin-top: 14px; }
