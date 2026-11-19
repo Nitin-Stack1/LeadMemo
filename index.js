@@ -147,6 +147,16 @@ function statusText(lead) {
     return "Saved " + touchedText(lead.lastTouched) + ", not contacted yet"
 }
 
+// mark a contact lead as contacted: timer restarts, count goes up, link opens
+function contactLead(lead) {
+    lead.lastTouched = Date.now()
+    lead.updatedAt = lead.lastTouched
+    lead.contactCount = (lead.contactCount || 0) + 1
+    saveLeads()
+    render(myLeads)
+    openLink(lead.url)
+}
+
 // clicking a plain link counts as opening it, so it stops getting cold
 function openLead(lead) {
     if (!isContactLead(lead)) {
@@ -272,10 +282,27 @@ function renderTopThree(){
         a.href = lead.url
         a.textContent = lead.title
         a.addEventListener("click", function(event){
-            event.preventDefault()
-            openLead(lead)
+            event.preventDefault()   // the row click below opens the link
         })
         item.appendChild(a)
+
+        // Contact button (Client / Job): contact the lead and it leaves Top 3
+        if (isContactLead(lead)) {
+            const contactBtn = document.createElement("button")
+            contactBtn.className = "small-btn"
+            contactBtn.textContent = "Contact"
+            contactBtn.addEventListener("click", function(event){
+                event.stopPropagation()   // do not also run the row click
+                contactLead(lead)
+            })
+            item.appendChild(contactBtn)
+        }
+
+        // click anywhere on the row to open the saved link
+        item.title = "Open " + lead.url
+        item.addEventListener("click", function(){
+            openLead(lead)
+        })
 
         const when = document.createElement("span")
         when.className = "meta"
@@ -356,12 +383,7 @@ function render(leads) {
             contactBtn.className = "small-btn"
             contactBtn.textContent = "Contact"
             contactBtn.addEventListener("click", function() {
-                lead.lastTouched = Date.now()
-                lead.updatedAt = lead.lastTouched
-                lead.contactCount = (lead.contactCount || 0) + 1
-                saveLeads()
-                render(myLeads)
-                openLink(lead.url)
+                contactLead(lead)
             })
             actions.appendChild(contactBtn)
         }
