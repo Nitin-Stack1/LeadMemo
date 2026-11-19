@@ -1,4 +1,5 @@
 let myLeads = []
+let deletedLog = {}   // id -> time deleted, used by cloud sync
 const MAX_WORDS = 50
 
 // Heat limits (must be defined before render runs)
@@ -30,7 +31,8 @@ function makeLead(url, title, note, tag) {
         tag: tag,
         createdAt: now,
         lastTouched: now,
-        contactCount: 0
+        contactCount: 0,
+        updatedAt: now
     }
 }
 
@@ -149,6 +151,7 @@ function statusText(lead) {
 function openLead(lead) {
     if (!isContactLead(lead)) {
         lead.lastTouched = Date.now()
+        lead.updatedAt = lead.lastTouched
         saveLeads()
         render(myLeads)
     }
@@ -168,7 +171,7 @@ noteEl.addEventListener("input", function() {
 // leads are kept in chrome.storage.local so the popup AND the background
 // service worker (notifications, later) can both read them
 function saveLeads() {
-    chrome.storage.local.set({ myLeads: myLeads })
+    chrome.storage.local.set({ myLeads: myLeads, deleted: deletedLog })
 }
 
 function resetForm() {
@@ -218,8 +221,10 @@ inputBtn.addEventListener("click", function() {
 
 //double clicked delete button the all links are deleted
 deleteBtn.addEventListener("dblclick", function() {
-    chrome.storage.local.remove("myLeads")
+    const when = Date.now()
+    myLeads.forEach(function(lead){ deletedLog[lead.id] = when })
     myLeads = []
+    saveLeads()
     render(myLeads)
 })
 function showTopThree(){
@@ -352,6 +357,7 @@ function render(leads) {
             contactBtn.textContent = "Contact"
             contactBtn.addEventListener("click", function() {
                 lead.lastTouched = Date.now()
+                lead.updatedAt = lead.lastTouched
                 lead.contactCount = (lead.contactCount || 0) + 1
                 saveLeads()
                 render(myLeads)
@@ -364,6 +370,7 @@ function render(leads) {
         delLeadBtn.className = "small-btn del-lead"
         delLeadBtn.textContent = "Delete"
         delLeadBtn.addEventListener("click", function() {
+            deletedLog[lead.id] = Date.now()
             myLeads = myLeads.filter(function(l) {
                 return l.id !== lead.id
             })
@@ -392,15 +399,17 @@ function normalizeLead(item, index) {
         tag: item.tag || "Other",
         createdAt: item.createdAt || now,
         lastTouched: item.lastTouched || now,
-        contactCount: item.contactCount || 0
+        contactCount: item.contactCount || 0,
+        updatedAt: item.updatedAt || item.lastTouched || item.createdAt || now
     }
 }
 
 // Load saved leads. This must stay at the END of the file,
 // so everything above (constants, functions) is ready before render runs.
 async function loadLeads() {
-    const result = await chrome.storage.local.get("myLeads")
+    const result = await chrome.storage.local.get(["myLeads", "deleted"])
     let saved = result.myLeads
+    deletedLog = result.deleted || {}
 
     // One-time migration: copy old localStorage leads into chrome.storage.local
     if (!saved) {
@@ -428,12 +437,15 @@ loadLeads()
 // ---- Settings (notifications on/off, daily reminder on/off) ----
 const notifToggle = document.getElementById("notif-toggle")
 const dailyToggle = document.getElementById("daily-toggle")
+const syncToggle = document.getElementById("sync-toggle")
+const syncStatusEl = document.getElementById("sync-status")
 
 function saveSettings() {
     chrome.storage.local.set({
         settings: {
             notifications: notifToggle.checked,
-            dailyReminder: dailyToggle.checked
+            dailyReminder: dailyToggle.checked,
+            sync: syncToggle.checked
         }
     })
     dailyToggle.disabled = !notifToggle.checked
@@ -441,19 +453,56 @@ function saveSettings() {
 
 async function loadSettings() {
     const result = await chrome.storage.local.get("settings")
-    const settings = Object.assign({ notifications: true, dailyReminder: true }, result.settings)
+    const settings = Object.assign({ notifications: true, dailyReminder: true, sync: true }, result.settings)
     notifToggle.checked = settings.notifications
     dailyToggle.checked = settings.dailyReminder
+    syncToggle.checked = settings.sync
     dailyToggle.disabled = !settings.notifications
 }
 
 notifToggle.addEventListener("change", saveSettings)
 dailyToggle.addEventListener("change", saveSettings)
+syncToggle.addEventListener("change", saveSettings)
 loadSettings()
+
+// ---- Cloud sync status line + live updates from other devices ----
+function renderSyncStatus(status) {
+    syncStatusEl.className = "sync-status"
+    if (!status) {
+        syncStatusEl.textContent = "Sync: waiting for first sync"
+    } else if (status.state === "ok") {
+        syncStatusEl.textContent = "Synced " + touchedText(status.at)
+    } else if (status.state === "off") {
+        syncStatusEl.textContent = "Sync is off. Leads stay on this device."
+    } else {
+        syncStatusEl.textContent = status.message || "Could not sync."
+        syncStatusEl.classList.add("bad")
+    }
+}
+
+chrome.storage.local.get("syncStatus").then(function(result) {
+    renderSyncStatus(result.syncStatus)
+})
+
+chrome.storage.onChanged.addListener(function(changes, area) {
+    if (area !== "local") return
+    if (changes.deleted) deletedLog = changes.deleted.newValue || {}
+    if (changes.syncStatus) renderSyncStatus(changes.syncStatus.newValue)
+    // another device changed a lead: show it without reopening the popup
+    if (changes.myLeads) {
+        const incoming = (changes.myLeads.newValue || []).map(normalizeLead)
+        if (JSON.stringify(incoming) !== JSON.stringify(myLeads)) {
+            myLeads = incoming
+            render(myLeads)
+            if (myLeads.length > 0) showTopThree()
+        }
+    }
+})
 
 //manually set the days 
 function setDays(i,d){
     myLeads[i].lastTouched = Date.now()-d*24*60*60*1000
+    myLeads[i].updatedAt = Date.now()
     saveLeads()
     render(myLeads)
 }
